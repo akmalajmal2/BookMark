@@ -1,107 +1,31 @@
-"use client";
-import { createClient } from "@supabase/supabase-js";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
+import BookmarkManager from "./BookmarkManager";
 
-export const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-);
-
-import { useEffect, useState } from "react";
-
-interface BookMarkProps {
-  id: string;
-  title: string;
-  url: string;
-}
-
-export default function BookMark() {
-  const [bookmarks, setBookmarks] = useState<BookMarkProps[]>([]);
-  const [title, setTitle] = useState<string>("");
-  const [url, setUrl] = useState<string>("");
-
-  const loadBookmark = async () => {
-    const { data } = await supabase
-      .from("bookmarks")
-      .select("*")
-      .order("created_at");
-    setBookmarks(data || []);
-  };
-
-  const addBookmark = async () => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    await supabase.from("bookmarks").insert({ title, url, user_id: user?.id });
-    setTitle("");
-    setUrl("");
-    loadBookmark();
-  };
-
-  const updateBookmarks = async (id: string) => {
-    await supabase.from("bookmarks").update({ title: "Updated!" }).eq("id", id);
-    loadBookmark();
-  };
-
-  const deleteBookmarks = async (id: string) => {
-    await supabase.from("bookmarks").delete().eq("id", id);
-    loadBookmark();
-  };
-
-  useEffect(() => {
-    loadBookmark();
-
-    const channel = supabase
-      .channel("realtime-bookmarks")
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "bookmarks",
+export default async function Page() {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
         },
-        () => loadBookmark(),
-      )
-      .subscribe();
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, []);
+      },
+    },
+  );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
 
   return (
-    <div className="p-10 max-w-xl mx-auto">
-      <h1 className="text-2xl mb-4">My Bookmarks</h1>
-
-      <input
-        className="border p-2 w-full mb-2"
-        placeholder="Title"
-        value={title}
-        onChange={(e) => setTitle(e.target.value)}
-      />
-      <input
-        className="border p-2 w-full mb-2"
-        placeholder="URL"
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-      />
-
-      <button
-        onClick={addBookmark}
-        className="bg-blue-500 text-white px-4 py-2"
-      >
-        Add
-      </button>
-      {bookmarks.map((b) => (
-        <div key={b.id} className="border p-3 mt-3 flex justify-between">
-          <a href={b.url} target="_blank">
-            {b.title}
-          </a>
-
-          <div>
-            <button onClick={() => updateBookmarks(b.id)}>✏️</button>
-            <button onClick={() => deleteBookmarks(b.id)}>🗑</button>
-          </div>
-        </div>
-      ))}
+    <div className="max-w-2xl mx-auto p-8">
+      <h1 className="text-2xl font-bold mb-6">My Private Bookmarks</h1>
+      <BookmarkManager userId={user.id} />
     </div>
   );
 }

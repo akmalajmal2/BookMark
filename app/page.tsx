@@ -1,21 +1,29 @@
-"use client";
-import { supabase } from "@/lib/supabase";
+import { createServerClient } from "@supabase/ssr";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
-export default function Login() {
-  const login = async () => {
-    await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: "http://localhost:3000/bookmarks",
+export default async function Home() {
+  const cookieStore = await cookies();
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll();
+        },
       },
-    });
-  };
-
-  return (
-    <div className="h-screen flex items-center justify-center">
-      <button onClick={login} className="bg-black text-white px-6 py-3 rounded">
-        Login with Google
-      </button>
-    </div>
+    },
   );
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Logic: If logged in, go to bookmarks. If not, go to login.
+  if (user) {
+    redirect("/bookmarks");
+  } else {
+    redirect("/login");
+  }
 }
