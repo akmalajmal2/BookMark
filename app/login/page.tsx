@@ -18,9 +18,9 @@ export default function LoginPage() {
     <div className="flex flex-col items-center justify-center min-h-screen">
       <button
         onClick={login}
-        className="bg-black text-white px-6 py-3 rounded-lg font-bold"
+        className="bg-black text-white px-6 py-2 rounded-lg font-bold cursor-pointer"
       >
-        Sign in with GitHub
+        Sign in with Google
       </button>
     </div>
   );

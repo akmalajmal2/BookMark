@@ -24,7 +24,9 @@ export default async function Page() {
 
   return (
     <div className="max-w-2xl mx-auto p-8">
-      <h1 className="text-2xl font-bold mb-6">My Private Bookmarks</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">
+        My Private Bookmarks
+      </h1>
       <BookmarkManager userId={user.id} />
     </div>
   );
